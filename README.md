@@ -1,4 +1,4 @@
-##Suricates Rule Guides
+Suricates Rule Guides
 
 
 This repository contains custom Suricata IDS/IPS rules specifically crafted to detect and analyze various cybersecurity threats such as malware activity, intrusion attempts, exploitation efforts, and anomalous network behaviors.
