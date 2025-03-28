@@ -1,0 +1,155 @@
+##Basic UDP Content Alert:
+#alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"some rule"; content:"some content"; sid:100; rev:1;
+alert udp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Cerber UDP 'hi' Checkin"; dsize:9; content:"hi"; depth:2; pcre:"/^[0-9]{7}$/R"; classtype:trojan-activity; sid:102; rev:1;)
+
+##Domain Based Rules:
+alert dns $HOME_NET any -> any any (msg:"TROJAN Activity Detected DNS Query To Known Sofacy Domain 1"; dns_query; content:"drivers-update.info"; nocase; isdataat:!1,relative; sid:20001; rev:1;)
+alert dns $HOME_NET any -> any any (msg:"TROJAN Activity Detected DNS Query To Known Sofacy Domain 1"; dns_query; content:"softupdates.info"; nocase; isdataat:!1,relative; sid:20002; rev:1;)
+alert dns $HOME_NET any -> any any (msg:"Possible Citi Phishing Attempt Observed in DNS Query"; dns_query; content:"online.citi.com"; isdataat:1,relative; sid:20003; rev:1;)
+alert tls $EXTERNAL_NET any ->  $HOME_NET any (msg:"TROJAN Activity Observed Malicious SSL Cert (Qadars C2C)"; flow:established,to_client; tls_cert_subject; content:"CN=susana24.com"; classtype:trojan-activity; sid:20004; rev:1;)
+
+##HTTP Based Rules:
+alert http any any -> $EXTERNAL_NET 80 (msg:"7ev3n +1 RAMSOMWARE detected"; flow:established,to_server; content:"GET"; http_method; content:"php?RIGHTS="; http_uri; content:"&WIN="; http_uri; distance:0; content:"WALLET"; http_uri; distance:0; content:"&UI="; http_uri; distance:0; content:"Internet|20|Explorer"; http_user_agent; depth:17; isdataat:!1,relative; sid:19000; rev:1;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"RansomWare +2 7ev3n C2C connection detected"; flow:established,to_server; content:"GET"; http_method; content:"php?RIGHTS="; http_uri; content:"&WIN="; http_uri; distance:0;content:"&ID="; http_uri; distance:0; content:"&UI="; http_uri; distance:0; content:"Internet|20|Explorer"; http_user_agent; depth:17; isdataat:!1,relative; http_header_names; content:!"Referer"; content:!"Accept"; sid:20005; rev:1;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"TROJAN +3 7ev3n RamsomWare Activity"; flow:established,to_server; content:"GET"; http_method; content:"php?SSTART="; http_uri; content:"&CRYPTED_DATA="; http_uri; distance:0; content:"&ID="; http_uri; distance:0; content:"&FILES="; http_uri; distance:0; content:"&UI="; http_uri; distance:0; content:"Internet|20|Explorer"; http_user_agent; depth:17; isdataat:!1,relative; http_header_names; content:!"Referer"; content:!"Accept"; sid:20006; rev:1;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"Malicious Document Retrieving Payload"; flow:established,to_server; content:".exe?q="; fast_pattern; content:"Microsoft BITS/"; http_user_agent; depth:15; pcre:"/\.exe\?q=[0-9]{3,5}$/U"; http_header_names; content:!"Referrer"; sid:20007; rev:1;)
+alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Ddos Client"; flow:established,to_server; content:"Windows"; offset:0; depth:7 ; content:"|4d 48 5a 00 00 00 00 00 00|"; distance:0; nocase; content:"|00 00 00 00 00 00 57 69 6e|"; distance:0; nocase; classtype:trojan-activity; sid:20008; rev:1;)
+alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"Possible Adobe Phishing Attempt"; flow:established,to_client; content:"200"; http_stat_code; http_content_type; content:"text/html"; nocase; file_data; content:"<META HTTP-EQUIV="; nocase; within:100; content:"refresh"; distance:1; nocase; within:7; content:"self.location.replace"; nocase; distance:0; content:"window.location"; nocase; distance:0; classtype:bad-unknown; sid:9; rev:1;)
+
+##STUDENT_PCAPS ANALYSIS LAB
+#icmp shell or tunnel filter:
+alert icmp any any -> any any (msg:"Possible ICMP Tunnel"; dsize:>63; reference:arachnids,246; classtype:icmp-event; sid:20009; rev:1;)
+alert icmp any any -> any any (msg:"Payload Contains Command"; content:"ipconfig"; classtype:icmp-event; sid:20010; rev:1;)
+alert icmp any any -> any any (msg:"Payload Contains Command"; content:"net user"; classtype:icmp-event; sid:20011; rev:1;)
+alert icmp any any -> any any (msg:"Payload Contains Command"; content:"wmic"; classtype:icmp-event; sid:20012; rev:1;)
+alert icmp any any -> any any (msg:"Payload Contains Command"; content:"netstat"; classtype:icmp-event; sid:20013; rev:1;)
+alert icmp any any -> any any (msg:"Payload Contains Command"; content:"arp -a"; classtype:icmp-event; sid:20014; rev:1;)
+
+##SSH TUNNEL Detetction:
+alert tcp $HOME_NET any -> any [53,80,443] (msg:"Possible SSH TUNNELLING"; content:"OpenSSH"; classtype:domain-c2; sid:20015; rev:1;)
+alert ssh any any -> any !22 (msg:"SSH POLICY VIALATION"; content:"openssh"; nocase; sid:1000020; rev:1;)
+#PHISHING DETECTION:
+#PAYPAL EXAMPLE:
+alert dns $HOME_NET any -> $EXTERNAL_NET 53 (msg:"PAYPAL +1 PHISHING DETECTED"; dns_query; content:"paypal.com"; nocase; isdataat:1,relative; classtype:social-engineering; sid:20016; rev:1;)
+alert dns $HOME_NET any -> $EXTERNAL_NET 53 (msg:"GMAIL +1 PHISHING DET3CTED"; dns_query; content:"gmail.com"; nocase; isdataat:1,relative; classtype:social-engineering; sid:20017; rev:1;)
+alert dns $HOME_NET any -> $EXTERNAL_NET 53 (msg:"POSSIBLE IDN ATTACK +1 PHISHING DETECTED"; dns_query; content:"xn--"; nocase; classtype:social-engineering; sid:20018; rev:1;)
+
+##TROJAN AND PHISHING DOMAIN
+alert http any any -> any any (msg:"Fake Flash Update Trojan"; http_referer; content:"http://adobe-flash-player.org"; content:"gate.php?hash="; distance:8; within:14; classtype:social-engineering; sid:20019; rev:1;)
+alert udp $HOME_NET any -> any 53 (msg:"Command and control connection detected"; content:"|6d 61 6c 77 61 72|"; sid:10000003; classtype:trojan-activity;)
+
+##PORT SCANNING ACTIVIES:
+alert icmp any any -> $HOME_NET any (msg:"Possible Nmap ping sweep"; dsize:0; sid:10000004; rev:1;)
+alert tcp any any -> $HOME_NET any (msg:"TCP Port Scanning"; detection_filter:track by_src, count 30, seconds 30; sid:1000006; rev:2;)
+
+##ANORMAL USERAGENT AND DETECTION:
+#OPTIONS PROPFIND POST
+alert http any any -> $HOME_NET any (msg:"NMAP VULNERABILITY SCANNING DETECTED"; content:"GET";http_method; offset:0; depth:3; content:"|4e 6d 61 70|"; http_user_agent; classtype:network-scan; sid:20023; rev:1;)
+
+##ANDRO LOKI BOT
+alert tcp any any -> any any (msg:"ANDRO LOKI BOT INFECTED HOST DETECTED"; content:"GET"; offset:0; depth:3; content:"wire145.exe"; distance:2; within:11; content:"lamela.hr"; sid:20024; rev:1;)
+alert http any any -> any any (msg:"LOKI BOT HOSTNAME IS DETECTED"; content:"GET"; http_method; content:"lamela.hr"; http_uri; sid:20025; rev:1;)
+
+##DNSTUNNEL
+alert dns any any -> any any (msg:"DNS TUNNEL OPENED"; dns_query; content:"dnscat"; sid:20026; rev:1;)
+alert dns any any -> any any (msg:"BEACONING DNS REQUEST TUNNEL OR MALWARE"; threshold: type both, track by_dst, count 40, seconds 60; sid:20027; rev:1;)
+
+##REMOTE EXPLOIT SHELLCODE 
+alert smb any any -> any any (msg:"SMB EXPLOIT SHELLCODE DETECTED"; content:"| 41 41 41 41 41 41 41 41 41 41|"; sid:20028; rev:1;)
+
+##General Exploit SHELLCODE:
+alert tcp any any -> any any (msg:"JUNK BYTES DETECTED POSSIBLE SHELLCODE"; content:"|41 41 41 41 41 41 4141 41 41|"; sid:20029; rev:1;)
+alert tcp any any -> any any (msg:"NOP BYTES DETECTED POSSIBLE SHELLCODE"; content:"|90 90 90 90 90 90 90 90 90|"; sid:20030; rev:1;)
+
+##SPESIFIC FTP EXPLOIT: 7C8 - 000 = 1992 + 16 = 2008 + EIP BYTES (4) = 2012 | 9090909090 |
+alert tcp any any -> $HOME_NET 21 (msg:"PCMAN EXPLOIT CODE"; content:"|41 41 41 41 41 41 41 41|"; depth:8; content:"|90 90 90 90 90 90 90 90|"; distance:2004; within:8; sid:20031; rev:1;)
+alert tcp any any -> $HOME_NET 21 (msg:"PCMAN EXPLOIT CODE +1"; content:"|90 90 90 90 90 90 90 90|"; offset:2012; depth:8; sid:20032; rev:1;)
+
+## Alert and store files over FTP:
+alert ftp-data any any -> any any (msg:"File Found within FTP and stored"; filestore; filename:"password"; ftpdata_command:stor; sid:31; rev:1;)
+
+##Alert and store files over SMB (with RUST activated)
+alert smb any any -> any any (msg:"File Found over SMB and stored"; filestore; sid:32; rev:1;)
+
+##Alert and store files over NFS (with RUST activated)
+#alert nfs any any -> any any (msg:"File found within NFS and stored"; filestore; sid:33; rev:1;)
+
+##WINSERVER EXPLOIT:
+alert tcp any any -> $HOME_NET 1101 (msg:"WINSERVER EXPLOIT DETECTED"; content:"|41 41 41 41|"; depth:4; content:"|13 44 87 7c|"; distance:18; content:"|90 90 90 90|"; distance:0; within:4; sid:20033; rev:1;)
+
+##PROTFTPD EXPLOIT SIGNITURE:	
+alert tcp any any -> $HOME_NET 21 (msg:"PRFTPD EXPLOIT DETECTED"; content:"|53 49 54 45|"; depth:4; content:"CPTO"; distance:1; within:4; content:"tmp"; distance:2; content:"?php"; distance:3; within:4; content:"passthru"; distance:1; within:8; content:"|28 24 5f 47 45 54|"; distance:0; within:6; sid:20034; rev:1;)
+
+##SQL INJECTION RULES(False Positive Rate is very high it is for just training):
+alert tcp any any -> any 80 (msg:"Error Based SQL Injection Detected"; content:"GET"; content: "%27" ; sid:20035;)
+alert tcp any any -> any 80 (msg:"Error Based SQL Injection Detected"; content: "%22" ; sid:20036;)
+alert tcp any any -> any 80 (msg:"SQL INJECTION SELECT KEYWORD +deneme"; content:"select"; nocase; sid:20037; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL INJECTION CONCAT KEYWORD"; content:"CONCAT"; nocase; sid:20038; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL INJECTION UPDATE KEYWORD"; content:"UPDATE"; nocase; sid:20039; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL INJECTION SLEEP KEYWORD"; content:"SLEEP"; sid:20040; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL INJECTION DROPTABLE KEYWORD"; content:"TABLE"; nocase; sid:20041; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL INJECTION ALTER KEYWORD"; content:"ALTER"; nocase; sid:20042; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL INJECTION TRUNCATE KEYWORD"; content:"TRUNCATE"; sid:20043; rev:1;)
+alert tcp any any -> any any (msg:"SQL INJECTION UNION KEYWORD"; content:"UNION"; sid:20044; rev:1;)
+alert tcp any any -> any 80 (msg: "AND SQL Injection Detected"; content: "and" ; nocase; sid:20045;)
+alert tcp any any -> any 80 (msg: "OR SQL Injection Detected"; content:"GET"; content:"dvwa"; content:"or" ; nocase; sid:20046;)
+
+##LFI RFI RULES:
+alert tcp any any -> $HOME_NET 80 (msg:"LFI ATTACK DETECTED"; content:"GET"; offset:0; depth:3; content:"../../../etc/passwd"; sid:20047; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"RFI ATTACK DETECTED"; content:"GET"; offset:0; depth:3; content:"=http://"; sid:20048; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"RFI ATTACK DETECTED"; content:"GET"; offset:0; depth:3; content:"=http://"; content:".php";sid:20049; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"RFI ATTACK DETECTED"; content:"GET"; offset:0; depth:3; content:"=http://"; content:".txt"; sid:20050; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"RFI ATTACK DETECTED"; content:"GET"; offset:0; depth:3; content:"=\\"; content:".php"; sid:20051; rev:1;)
+
+##WEBSHELLS
+alert tcp any any -> $HOME_NET 80 (msg:"POSSIBLE WEB SHELL DETECTED"; content:"GET"; offset:0; depth:3; content:"shell"; sid:20052; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"POSSIBLE WEB SHELL DETECTED"; content:"GET"; offset:0; depth:3; content:"fsockopen"; sid:20053; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"POSSIBLE WEB SHELL DETECTED"; content:"GET"; offset:0; depth:3; content:"pfsockopen"; sid:20054; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"POSSIBLE WEB SHELL DETECTED"; content:"GET"; offset:0; depth:3; content:"passthru"; sid:20055; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"POSSIBLE WEB SHELL DETECTED"; content:"GET"; offset:0; depth:3; content:"system";  sid:20056; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"POSSIBLE WEB SHELL DETECTED"; content:"GET"; offset:0; depth:3; content:"eval"; sid:20057; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"POSSIBLE WEB SHELL DETECTED"; content:"GET"; offset:0; depth:3; content:"exec"; sid:20058; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"POSSIBLE WEB SHELL DETECTED"; content:"GET"; offset:0; depth:3; content:"base64"; sid:20059; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"POSSIBLE WEB SHELL DETECTED"; content:"GET"; offset:0; depth:3; content:"c99.php"; sid:20060; rev:1;)
+
+##PROTOCOL ANOMALY
+alert tcp any any -> any ![80,8080] (msg:"SURICATA HTTP but not tcp port 80, 8080"; flow:to_server; app-layer-protocol:http; sid:230001; rev:1;)
+alert tcp any any -> any 80 (msg:"SURICATA Port 80 but not HTTP"; flow:to_server; app-layer-protocol:!http; sid:30002; rev:1;)
+alert http any any -> any 443 (msg:"SURICATA HTTP clear text on port 443"; flow:to_server; app-layer-protocol:http; sid:30003; rev:1;)
+alert http any any -> any 443 (msg:"SURICATA HTTP clear text on port 443"; flow:to_server; app-layer-protocol:!tls; sid:30004; rev:1;)
+alert tcp any any -> any ![20,21] (msg:"SURICATA FTP but not tcp port 20 or 21"; flow:to_server; app-layer-protocol:ftp; sid:30005; rev:1;)
+alert tcp any any -> any [20,21] (msg:"SURICATA TCP port 21 but not FTP"; flow:to_server; app-layer-protocol:!ftp; sid:30006; rev:1;)
+alert tcp any any -> any ![25,587,465] (msg:"SURICATA SMTP but not tcp port 25,587,465"; flow:to_server; app-layer-protocol:smtp; sid:30007; rev:1;)
+alert tcp any any -> any [25,587,465] (msg:"SURICATA TCP port 25,587,465 but not SMTP"; flow:to_server; app-layer-protocol:!smtp; sid:30008; rev:1;)
+alert tcp any any -> any !22 (msg:"SURICATA SSH but not tcp port 22"; flow:to_server; app-layer-protocol:ssh; sid:30009; rev:1;)
+alert tcp any any -> any 22 (msg:"SURICATA TCP port 22 but not SSH"; flow:to_server; app-layer-protocol:!ssh; sid:30010; rev:1;)
+alert tcp any any -> any !143 (msg:"SURICATA IMAP but not tcp port 143"; flow:to_server; app-layer-protocol:imap; sid:30011; rev:1;)
+alert tcp any any -> any 143 (msg:"SURICATA TCP port 143 but not IMAP"; flow:to_server; app-layer-protocol:!imap; sid:30012; rev:1;)
+alert tcp any any -> any 139 (msg:"SURICATA TCP port 139 but not SMB"; flow:to_server; app-layer-protocol:!smb; sid:30013; rev:1alert tcp any any -> any [80,8080] (msg:"SURICATA DCERPC detected over port tcp 80,8080"; flow:to_server; app-layer-protocol:dcerpc; sid:30014; rev:1;)
+alert tcp any any -> any 53 (msg:"SURICATA TCP port 53 but not DNS"; flow:to_server; app-layer-protocol:!dns; sid:30015; rev:1;)
+alert udp any any -> any 53 (msg:"SURICATA UDP port 53 but not DNS"; flow:to_server; app-layer-protocol:!dns; sid:30016; rev:1;)
+
+##BLUE KEEP:
+alert tcp any any -> any 3389 (msg:"ET EXPLOIT [NCC GROUP] Possible Inbound RDP Exploitation Attempt (CVE-2019-0708)"; flow:to_server,established; content:"|03 00|"; depth:2; content:"|02 f0|"; distance:2; within:2; content:"|00 05 00 14 7c 00 01|"; within:512; content:"|03 c0|"; distance:3; within:384; content:"MS_T120|00|"; distance:6; within:372; nocase; fast_pattern; threshold: type limit, track by_src, count 2, seconds 600; metadata: former_category EXPLOIT; reference:cve,2019,0708; reference:url,portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2019-0708; reference:url,github.com/nccgroup/Cyber-Defence/blob/master/Signatures/suricata/2019_05_rdp_cve_2019_0708.txt; classtype:attempted-admin; sid:30017; rev:3; metadata:attack_target Client_and_Server, deployment Perimeter, deployment Internet, deployment Internal, signature_severity Major, created_at 2019_05_21, updated_at 2019_05_21;)
+
+##EMPIRE RULE:
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg: "MALWARE [PTsecurity] PowerShell Empire Request HTTP Pattern";flow: established, to_server; content: "POST"; http_method; content: "HTTP/1.1|0d0a|Cookie: session="; depth:1000; fast_pattern; content: "=|0d0a|User-Agent: "; distance:27; within:400; content: "Host: "; within:400; content: "Content-Length: 462|0d0a|"; within: 400; content:!"Referer|3a|"; http_header; content: !"Content-Type: "; http_header; classtype: trojan-activity; metadata: id_399044,created_at 2017_11_21; reference: url, github.com/ptresearch/AttackDetection; metadata: Open Ptsecurity.com ruleset; sid: 10002268; rev: 2;)
+alert http $EXTERNAL_NET any -> $HOME_NET any (msg: "MALWARE [PTsecurity] PowerShell Empire stager receive over HTTP";flow: established, to_client; content:"200"; http_stat_code; content: "If($PSVersionTable.PSVersion.Major -ge 3){"; http_server_body; nocase; depth: 1000; content: "$GPS=[ref].Assembly.GetType(";http_server_body; nocase; within: 100; content: "System.Management.Automation.Utils";http_server_body; within: 100; threshold: type limit, track by_src, count 1, seconds 30; classtype: trojan-activity; metadata: id_377596,created_at 2017_11_22; reference: url, github.com/ptresearch/AttackDetection; metadata: Open Ptsecurity.com ruleset; sid: 10002269; rev: 1;)
+alert tcp any any -> any 80 (msg:"EMPIRE CONNECTION ESTABLISHED"; content:"GET"; offset:0; depth:3; content:"/login/process.php"; distance:1; within:18; content:"|0d 0a|"; distance:9; within:2; content:"|43 6f 6f 6b 69 65 3a 20 73 65 73 73 69 6f 6e 3d|"; distance:0; within:16; threshold: type both, track by_dst, count 6, seconds 120; sid:20061; rev:1;)
+
+##MYSQL UNAUTHROZIED ACCESS:
+alert tcp any any -> $HOME_NET 3306 (msg:"MYSQL Username Root Connection Request"; content:"root"; offset:36; depth:4; sid:20070; rev:1;)
+alert tcp any any -> $HOME_NET 3306 (msg:"MYSQL Show Databases Command Executed By Remote Host"; content:"|73 68 6f 77 20 64 61 74 61 62 61 73 65 73|"; offset:5; depth:14; sid:20071; rev:1;)
+alert tcp any any -> $HOME_NET 3306 (msg:"MYSQL Show Tables Command Executed By Remote Host"; content:"|73 68 6f 77 20 74 61 62 6c|"; offset:5; depth:9; sid:20072; rev:1;)
+alert tcp any any -> $HOME_NET 3306 (msg:"Select Executed In database By the Remote Host"; content:"|73 65 6c 65 63 74 20 2a 20 66 72 6f 6d 20 75 73 65 72 73|"; offset:5; depth:19; sid:20073; rev:1;)
+
+##404.php analysis and rule
+alert tcp any any -> any 55555 (msg:"404.php web backdoor has been detected"; content:"POST"; depth:4; content:"a="; distance:495; within:2; content:"Console"; distance:0; within:7; sid:20074; rev:1;) 
+
+##shellshock
+alert http any any -> any 80 (msg:"SHELL SHOCK DETECTED +X"; flow:established,to_server; content:"GET"; http_method; content:"/cgi-bin"; http_uri; content:"|7b 20 3a 3b 20 7d|"; distance:90; within:6; http_user_agent; sid:20075; rev:1;)
+alert tcp any any -> any 80 (msg:"SHELL SHOCK DETECTED +2"; content:"|7b 20 3a 3b 20 7d|"; offset:62; depth:6; sid:20076;)
+alert http any any -> any 80 (msg:"SHELL SHOCK DETECTED +X"; flow:established,to_server; content:"GET"; http_method; content:"/cgi-bin"; http_uri; content:"|7b 20 3a 3b 20 7d|"; http_user_agent; sid:20077; rev:1;)
+
+
+
